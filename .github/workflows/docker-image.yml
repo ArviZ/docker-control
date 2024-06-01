@@ -54,9 +54,10 @@ jobs:
         with:
           context: .
           push: true
-          tags: |
-            ${{ steps.build-and-push-image.outputs.docker_tags }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6
 
       - name: Generate artifact attestation
@@ -65,18 +66,3 @@ jobs:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
-
-  set-docker-tags:
-    runs-on: ubuntu-latest
-    outputs:
-      docker_tags: ${{ steps.set-tags.outputs.docker_tags }}
-    steps:
-      - name: Set Docker tags for releases and snapshots
-        id: set-tags
-        run: |
-          if [[ ${{ github.event_name }} == 'create' && ${{ github.event.ref_type }} == 'tag' ]]; then
-            echo "docker_tags=${{ github.ref_name }},latest" >> $GITHUB_ENV
-          elif [[ ${{ github.ref }} == 'refs/heads/master' ]]; then
-            echo "docker_tags=snapshot" >> $GITHUB_ENV
-          fi
-        shell: bash
